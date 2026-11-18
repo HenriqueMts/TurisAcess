@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth/server";
+import { getAuth } from "@/lib/auth/server";
 import {
   getProfile,
   getUserIdByEmail,
@@ -43,7 +43,7 @@ export async function signInAction(
     return { error: "Informe e-mail e senha." };
   }
 
-  const { error } = await auth.signIn.email({ email, password });
+  const { error } = await getAuth().signIn.email({ email, password });
   if (error) {
     return { error: "E-mail ou senha incorretos." };
   }
@@ -77,7 +77,7 @@ export async function signUpAction(
     return { error: "A senha precisa ter no mínimo 8 caracteres." };
   }
 
-  const { error } = await auth.signUp.email({ email, name, password });
+  const { error } = await getAuth().signUp.email({ email, name, password });
   if (error) {
     return {
       error:
@@ -111,5 +111,5 @@ export async function signUpAction(
 }
 
 export async function signOutAction() {
-  await auth.signOut();
+  await getAuth().signOut();
 }

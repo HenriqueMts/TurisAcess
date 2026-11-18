@@ -1,13 +1,32 @@
 import "server-only";
 import { createNeonAuth } from "@neon/auth/next/server";
 
-/** Neon Auth (Managed Better Auth). Sessões ficam no schema `neon_auth`. */
-export const auth = createNeonAuth({
-  baseUrl: process.env.NEON_AUTH_BASE_URL!,
-  cookies: {
-    secret: process.env.NEON_AUTH_COOKIE_SECRET!,
-  },
-});
+type NeonAuth = ReturnType<typeof createNeonAuth>;
+
+let instance: NeonAuth | null = null;
+
+/**
+ * Neon Auth (Managed Better Auth). Sessões ficam no schema `neon_auth`.
+ *
+ * Criado sob demanda: `createNeonAuth` valida `cookies.secret` na hora da
+ * chamada, e durante o `next build` as variáveis de ambiente podem não estar
+ * disponíveis. Falhar aqui quebraria a coleta de páginas do build inteiro.
+ */
+export function getAuth(): NeonAuth {
+  if (!instance) {
+    const baseUrl = process.env.NEON_AUTH_BASE_URL;
+    const secret = process.env.NEON_AUTH_COOKIE_SECRET;
+
+    if (!baseUrl || !secret) {
+      throw new Error(
+        "Neon Auth não configurado: defina NEON_AUTH_BASE_URL e NEON_AUTH_COOKIE_SECRET (mínimo 32 caracteres).",
+      );
+    }
+
+    instance = createNeonAuth({ baseUrl, cookies: { secret } });
+  }
+  return instance;
+}
 
 export type SessionUser = {
   id: string;
@@ -22,7 +41,7 @@ export type SessionUser = {
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
   try {
-    const { data } = await auth.getSession();
+    const { data } = await getAuth().getSession();
     if (!data?.user) return null;
     return {
       id: data.user.id,
